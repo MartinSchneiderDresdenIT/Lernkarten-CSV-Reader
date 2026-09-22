@@ -1,6 +1,6 @@
 import csv
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, ttk
 
 
 class FlashcardApp:
@@ -10,43 +10,59 @@ class FlashcardApp:
         self.root.geometry("800x500")
         self.cards = []
         self.current_card = 0
+        buttonheight=3
 
         tk.Button(
             root,
             text="CSV-Datei öffnen",
-            command=self.load_csv
+            command=self.load_csv,
+            height=buttonheight
         ).pack(pady=10)
-
+        
+		# KartenFrame
+        kartenFrame=tk.Frame(root,borderwidth=1, relief="groove",background="white")
+        kartenFrame.pack(pady=0)
         # Nummer der Karte
         self.number = tk.Label(
-            root,
+            kartenFrame,
             text="",
             font=("Arial", 14, "bold"),
-            fg="gray"
+            background="white"
         )
-        self.number.pack(pady=5)
-
+        self.number.pack(pady=0)
         # Frage
         self.question = tk.Label(
-            root,
+            kartenFrame,
             text="Bitte eine CSV-Datei öffnen.",
             wraplength=700,
             font=("Arial", 18),
-            height=4
+            background="white"
         )
-        self.question.pack(padx=20, pady=10)
-
+        self.question.pack(padx=20, pady=0)
+        
+		# Auswahlbuttons
+        buttonFrame= tk.Frame(root,borderwidth=1,relief="groove")
+        buttonFrame.pack(pady=5)
         tk.Button(
-            root,
+            buttonFrame,
             text="Nächste Frage",
-            command=self.next_card
-        ).pack(pady=5)
+            command=self.next_card,
+            height=buttonheight
+        ).pack(pady=5,padx=5,side="right")
+        
+        tk.Button(
+            buttonFrame,
+            text="Vorherige Frage",
+            command=self.prev_card,
+            height=buttonheight
+        ).pack(pady=5,padx=5,side="left")
 
         tk.Button(
-            root,
+            buttonFrame,
             text="Antwort anzeigen",
-            command=self.show_answer
-        ).pack(pady=5)
+            command=self.show_answer            ,
+            height=buttonheight
+        ).pack(pady=5,padx=5)
 
         # Antwort
         self.answer = tk.Label(
@@ -129,7 +145,7 @@ class FlashcardApp:
 
     def show_card(self):
         nr, question, _ = self.cards[self.current_card]
-
+        
         self.number.config(text=f"Nr. {nr}")
         self.question.config(text=question)
         self.answer.config(text="")

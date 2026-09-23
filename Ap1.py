@@ -12,6 +12,8 @@ class FlashcardApp:
         self.cards = []
         self.current_card = 0
         buttonheight=3
+        qa_field_width= 50 #Fill muss aus sein! Sonst füllt es Breite aus
+        qa_field_padyx= 50 #Seitenabstand
 
         tk.Button(
             root,
@@ -30,12 +32,11 @@ class FlashcardApp:
             font=("Arial", 14, "bold"),
             background="white"
         )
-        self.number.pack(pady=0)
+        
         
         # init Frage, update after Antwort...
-        self.question = tk.Text(root, width=70, wrap="word")
-        self.question.pack()
-        # self.question.pack(fill="x", expand=True,padx=10)
+        self.question = tk.Text(root, width=qa_field_width, wrap="word")
+        self.question.pack(fill="x", expand=False,padx=qa_field_padyx)
         self.question.update_idletasks()
         
         
@@ -59,21 +60,17 @@ class FlashcardApp:
         tk.Button(
             buttonFrame,
             text="Antwort anzeigen",
-            command=self.show_answer            ,
+            command=self.show_answer,
             height=buttonheight
         ).pack(pady=5,padx=5)
 
         # Antwort
-        self.answer = tk.Label(
-            root,
-            text="",
-            wraplength=700,
-            font=("Arial", 16),
-            fg="darkgreen",
-            justify="left",
-            anchor="w"
-        )
-        self.answer.pack(padx=20, pady=10)
+        self.answer = tk.Text(root, width=qa_field_width, wrap="word")
+        self.answer.tag_configure("bold", font=("Arial", 10, "bold"))
+        self.answer.config(state="disabled")
+        self.answer.update_idletasks()
+        root.after(1, self.answerFieldSizing) #AntwortFeldZeilenAnpassung
+        
 
         # Frage
         self.question.tag_configure("bold", font=("Arial", 10, "bold"))
@@ -81,14 +78,14 @@ class FlashcardApp:
         self.question.insert("end", "CSV-Datei", "bold")
         self.question.insert("end", " auswählen!")
         self.question.config(state="disabled")
-        self.feldSizing() #FrageFeldZeilenAnpassung
+        self.questionFieldSizing() #FrageFeldZeilenAnpassung
         
 
 
         # Tastatursteuerung
         self.root.bind(
             "<Down>",
-            lambda event: self.show_answer()
+            lambda event: self.show_answer(qa_field_padyx)
         )
         self.root.bind(
             "<Up>",
@@ -152,31 +149,20 @@ class FlashcardApp:
                 f"CSV-Datei konnte nicht gelesen werden:\n{error}"
             )
     
-    def myQuestionFormat(self, text):
-        self.question.config(state="normal")
-        self.question.delete("1.0", "end")
+    def formatText(self,widget,text):
+        widget.config(state="normal")
+        widget.delete("1.0", "end")
 
-        parts = re.split(r"(\*\*.*?\*\*)", text)
+        BOLD_PATTERN = r"(\*\*.*?\*\*)" # Pattern für **Fett**
+        parts = re.split(BOLD_PATTERN, text)
         for part in parts:
             if part.startswith("**") and part.endswith("**"):
-                self.question.insert("end", part[2:-2], "bold")
+                widget.insert("end", part[2:-2], "bold")
             else:
-                self.question.insert("end", part)
-        self.question.config(state="disabled")
+                widget.insert("end", part.replace("\\n","\n"))# Zeilenumbruch \n mit replace
+        widget.config(state="disabled")
 
-    def myAnswerFormat(self, text): # TOOODOOOOODODODODODODOODODODO<<<<<<<<<<<<<<<<<<<<<<< Answer UMbau von Label zu Textfeld
-        self.question.config(state="normal")
-        self.question.delete("1.0", "end")
-
-        parts = re.split(r"(\*\*.*?\*\*)", text)
-        for part in parts:
-            if part.startswith("**") and part.endswith("**"):
-                self.question.insert("end", part[2:-2], "bold")
-            else:
-                self.question.insert("end", part)
-        self.question.config(state="disabled")
-
-    def feldSizing(self):
+    def questionFieldSizing(self):
         self.question.update_idletasks()
         result = self.question.count(
             "1.0",
@@ -184,25 +170,46 @@ class FlashcardApp:
             "displaylines"
         )
         zeilenumbruche = result[0] if result else 0
-        print("Zeilenumbrüche: ",zeilenumbruche)
+        # print("Zeilenumbrüche: ",zeilenumbruche)
         self.question.config(height=zeilenumbruche+1)
 
+    def answerFieldSizing(self):
+        self.answer.update_idletasks()
+        result = self.answer.count(
+            "1.0",
+            "end-1c",
+            "displaylines"
+        )        
+        zeilenumbruche = result[0] if result else 0
+        # print("Answer Zeilenumbrüche: ",zeilenumbruche)
+        self.answer.config(height=zeilenumbruche+1)
+        
+
     def show_card(self):
+        self.answer.pack_forget()
+        self.number.pack(pady=0)
         nr, question, _ = self.cards[self.current_card]
         
         self.number.config(text=f"Nr. {nr}")
-        self.myQuestionFormat(question) # insert: Frage
-        self.feldSizing()
-        self.answer.config(text="")
+        self.formatText(self.question,question) #insert: Frage
+        self.questionFieldSizing()
+        self.answer.config(state="normal")
+        self.answer.delete("1.0","end")
+        self.answer.config(state="disabled")
+        self.answerFieldSizing()
 
-    def show_answer(self):
+    def show_answer(self,qa_padx):
+        self.answer.pack(fill="x", expand=False, padx=qa_padx)
         if self.cards:
             NR,question, answer = self.cards[self.current_card]
-            self.answer.config(text=answer)
+            self.answer.config(state="normal")
+            self.formatText(self.answer,answer)
+            self.answer.config(state="disabled")
+            self.answerFieldSizing()
 
     def hide_answer(self):
-        if self.cards:
-            self.answer.config(text="")
+        self.answer.pack_forget()
+        
 
     def next_card(self):
         if self.cards:
@@ -218,10 +225,6 @@ class FlashcardApp:
             ) % len(self.cards)
             self.show_card()
     
-
-
-    
-
 
 if __name__ == "__main__":
     app_root = tk.Tk()

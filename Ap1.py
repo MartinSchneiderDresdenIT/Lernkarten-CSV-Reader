@@ -1,6 +1,7 @@
 import csv
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+import re
 
 
 class FlashcardApp:
@@ -30,15 +31,13 @@ class FlashcardApp:
             background="white"
         )
         self.number.pack(pady=0)
-        # Frage
-        self.question = tk.Label(
-            kartenFrame,
-            text="Bitte eine CSV-Datei öffnen.",
-            wraplength=700,
-            font=("Arial", 18),
-            background="white"
-        )
-        self.question.pack(padx=20, pady=0)
+        
+        # init Frage, update after Antwort...
+        self.question = tk.Text(root, width=70, wrap="word")
+        self.question.pack()
+        # self.question.pack(fill="x", expand=True,padx=10)
+        self.question.update_idletasks()
+        
         
 		# Auswahlbuttons
         buttonFrame= tk.Frame(root,borderwidth=1,relief="groove")
@@ -75,6 +74,16 @@ class FlashcardApp:
             anchor="w"
         )
         self.answer.pack(padx=20, pady=10)
+
+        # Frage
+        self.question.tag_configure("bold", font=("Arial", 10, "bold"))
+        self.question.insert("end", "Bitte eine ")
+        self.question.insert("end", "CSV-Datei", "bold")
+        self.question.insert("end", " auswählen!")
+        self.question.config(state="disabled")
+        self.feldSizing() #FrageFeldZeilenAnpassung
+        
+
 
         # Tastatursteuerung
         self.root.bind(
@@ -142,20 +151,53 @@ class FlashcardApp:
                 "Fehler",
                 f"CSV-Datei konnte nicht gelesen werden:\n{error}"
             )
+    
+    def myQuestionFormat(self, text):
+        self.question.config(state="normal")
+        self.question.delete("1.0", "end")
+
+        parts = re.split(r"(\*\*.*?\*\*)", text)
+        for part in parts:
+            if part.startswith("**") and part.endswith("**"):
+                self.question.insert("end", part[2:-2], "bold")
+            else:
+                self.question.insert("end", part)
+        self.question.config(state="disabled")
+
+    def myAnswerFormat(self, text): # TOOODOOOOODODODODODODOODODODO<<<<<<<<<<<<<<<<<<<<<<< Answer UMbau von Label zu Textfeld
+        self.question.config(state="normal")
+        self.question.delete("1.0", "end")
+
+        parts = re.split(r"(\*\*.*?\*\*)", text)
+        for part in parts:
+            if part.startswith("**") and part.endswith("**"):
+                self.question.insert("end", part[2:-2], "bold")
+            else:
+                self.question.insert("end", part)
+        self.question.config(state="disabled")
+
+    def feldSizing(self):
+        self.question.update_idletasks()
+        result = self.question.count(
+            "1.0",
+            "end-1c",
+            "displaylines"
+        )
+        zeilenumbruche = result[0] if result else 0
+        print("Zeilenumbrüche: ",zeilenumbruche)
+        self.question.config(height=zeilenumbruche+1)
 
     def show_card(self):
         nr, question, _ = self.cards[self.current_card]
         
         self.number.config(text=f"Nr. {nr}")
-        self.question.config(text=question)
+        self.myQuestionFormat(question) # insert: Frage
+        self.feldSizing()
         self.answer.config(text="")
 
     def show_answer(self):
         if self.cards:
-            nr, question, answer = self.cards[self.current_card]
-
-            self.number.config(text=f"Nr. {nr}")
-            self.question.config(text=question)
+            NR,question, answer = self.cards[self.current_card]
             self.answer.config(text=answer)
 
     def hide_answer(self):
@@ -175,6 +217,10 @@ class FlashcardApp:
                 self.current_card - 1
             ) % len(self.cards)
             self.show_card()
+    
+
+
+    
 
 
 if __name__ == "__main__":
